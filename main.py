@@ -14,7 +14,9 @@ HEADERS = {
     "Accept" : "*/*"
 }
 BLUE = (90, 200, 250)
-RED = (255, 70, 85)
+VALO_RED = (255, 70, 85)
+GREEN = (76, 187, 23)
+RED = (255, 0, 0)
 REGION = "eu"
 
 intents = discord.Intents.default()
@@ -80,13 +82,26 @@ async def get_last_match_leaderboard(ctx, *nametag):
     rounds = last_match["metadata"]["rounds_played"]
     players = last_match["players"]["all_players"]
     sorted_players = sorted(players, key=lambda x : x["stats"]["score"]//rounds,reverse=True)
+    map = last_match["metadata"]["map"]
+    mode = last_match["metadata"]["mode"]
+    when = last_match["metadata"]["game_start_patched"]
 
     embeds = []
+    winner = False
     for player in sorted_players:
         player_name = f"{player["name"]}#{player["tag"]}"
         score = player["stats"]["score"] // rounds
         k, d, a = player["stats"]["kills"], player["stats"]["deaths"], player["stats"]["assists"]
-        color = rgb(*RED) if player["team"] == "Red" else rgb(*BLUE) 
+        player_team = player["team"]
+        color = rgb(*VALO_RED) if player_team == "Red" else rgb(*BLUE) 
+        print(f"plnm='{player_name}',nt='{name}#{tag}'")
+        if player_name.upper() == f"{name.upper()}#{tag.upper()}":
+            winner = last_match["teams"][player_team.lower()]["has_won"]
+            print("dadakslkap")
+            header = discord.Embed(
+                color=rgb(*GREEN) if winner else rgb(*RED),
+                description=f"## Map: {map}\n ## Mode: {mode}\n ## Date: {when}"
+            )                
 
         embed =discord.Embed(
                 color=color,
@@ -105,6 +120,8 @@ async def get_last_match_leaderboard(ctx, *nametag):
         )
         embed.set_image(url="https://i.sstatic.net/Fzh0w.png")
         embeds.append(embed)
+
+    await ctx.send(embed=header)
     await ctx.send(embeds=embeds)
 
 def get_rank_from_nametag(name, tag):
