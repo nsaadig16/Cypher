@@ -5,7 +5,7 @@ import sqlite3
 import utils
 from dotenv import load_dotenv
 from discord.ext.commands import Bot, Context, CommandNotFound
-from utils import RED, GREEN, VALO_RED, BLUE
+from utils import RED, GREEN, VALO_RED, BLUE, WIDTH
 
 load_dotenv()
 TOKEN = os.getenv("TOKEN","")
@@ -58,7 +58,7 @@ async def is_up(ctx : Context):
         await ctx.send("The server for the Europe region is down!")
 
 @bot.command(name="player")
-async def get_player(ctx : Context, nametag):
+async def get_player(ctx : Context, nametag = None):
     """
     Displays information on a player
 
@@ -66,7 +66,15 @@ async def get_player(ctx : Context, nametag):
         nametag: the player's nametag
     """
     # Get data
-    if not utils.is_nametag(nametag):
+    if nametag is None:
+        real_nametag = get_nametag(ctx.author.id)
+        if real_nametag is None:
+            await ctx.send("You don't have a nametag linked to your account." \
+            " Use `!player nametag` or `!setname nametag`")
+            return
+        else:
+            nametag = real_nametag
+    elif not utils.is_nametag(nametag):
         await ctx.send("Invalid nametag format!")
         return
     name, tag = utils.get_name_tag(nametag)
@@ -98,14 +106,22 @@ async def get_player(ctx : Context, nametag):
     await ctx.send(embed=embed)
 
 @bot.command(name='lastmatch')
-async def get_last_match_leaderboard(ctx : Context, nametag):
+async def get_last_match_leaderboard(ctx : Context, nametag = None):
     """
     Displays a player's last match leaderboard
 
     Arguments:
         nametag: the player's nametag
     """
-    if not utils.is_nametag(nametag):
+    if nametag is None:
+        real_nametag = get_nametag(ctx.author.id)
+        if real_nametag is None:
+            await ctx.send("You don't have a nametag linked to your account." \
+            " Use `!player nametag` or `!setname nametag`")
+            return
+        else:
+            nametag = real_nametag
+    elif not utils.is_nametag(nametag):
         await ctx.send("Invalid nametag format!")
         return
     name, tag = utils.get_name_tag(nametag)
@@ -130,10 +146,8 @@ async def get_last_match_leaderboard(ctx : Context, nametag):
         k, d, a = player["stats"]["kills"], player["stats"]["deaths"], player["stats"]["assists"]
         player_team = player["team"]
         color = utils.rgb(*VALO_RED) if player_team == "Red" else utils.rgb(*BLUE) 
-        print(f"plnm='{player_name}',nt='{name}#{tag}'")
         if player_name.upper() == f"{name.upper()}#{tag.upper()}":
             winner = last_match["teams"][player_team.lower()]["has_won"]
-            print("dadakslkap")
             header = discord.Embed(
                 color=utils.rgb(*GREEN) if winner else utils.rgb(*RED),
                 description=f"## Map: {map}\n ## Mode: {mode}\n ## Date: {when}"
@@ -154,7 +168,7 @@ async def get_last_match_leaderboard(ctx : Context, nametag):
         embed.set_thumbnail(
             url=player["assets"]["agent"]["small"]
         )
-        embed.set_image(url="https://i.sstatic.net/Fzh0w.png")
+        embed.set_image(url=WIDTH)
         embeds.append(embed)
 
     await ctx.send(embed=header)
@@ -179,8 +193,8 @@ async def set_name(ctx : Context, nametag):
     conn.commit()
     await ctx.send(f"Successfuly linked the nametag {nametag} to your user!")
 
-@bot.command(name="getname")
-async def get_name(ctx: Context):
+@bot.command(name="showname")
+async def show_name(ctx: Context):
     """
     Show the nametag linked to your user
     """
@@ -220,6 +234,16 @@ def check_request(response):
         message = response["errors"][0]["message"]
         return f"Error: {message}"
     return None
+
+def get_nametag(id : int):
+    c.execute("SELECT nametag FROM users WHERE id = ?",
+              (id,)
+    )
+    row = c.fetchone()
+    if row is None:
+        return None
+    else:
+        return row[0]
 
 if __name__ == "__main__":
     c.execute(

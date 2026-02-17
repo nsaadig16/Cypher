@@ -17,3 +17,6 @@ response.json
 
 # Database
 *.db
+
+# Build
+build.sh

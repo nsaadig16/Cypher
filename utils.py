@@ -10,6 +10,7 @@ BLUE = (90, 200, 250)
 VALO_RED = (255, 70, 85)
 GREEN = (76, 187, 23)
 RED = (255, 0, 0)
+WIDTH="https://i.sstatic.net/Fzh0w.png"
 
 def get_color_from_image(url : str):
     response = requests.get(url)
