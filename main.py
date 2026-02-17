@@ -4,7 +4,8 @@ import os
 import sqlite3
 import utils
 from dotenv import load_dotenv
-from discord.ext.commands import Bot, Context, CommandNotFound, MissingRequiredArgument
+from discord.ext.commands import Bot, Context
+from discord.ext.commands.errors import CommandNotFound, MissingRequiredArgument
 from utils import RED, GREEN, VALO_RED, BLUE, WIDTH
 
 load_dotenv()
@@ -145,7 +146,7 @@ async def get_last_match_leaderboard(ctx : Context, nametag = None):
     embeds = []
     winner = False
     for player in sorted_players:
-        player_name = f"{player["name"]}#{player["tag"]}"
+        player_name = f'{player["name"]}#{player["tag"]}'
         score = player["stats"]["score"] // rounds
         k, d, a = player["stats"]["kills"], player["stats"]["deaths"], player["stats"]["assists"]
         player_team = player["team"]
