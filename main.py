@@ -4,7 +4,7 @@ import os
 import sqlite3
 import utils
 from dotenv import load_dotenv
-from discord.ext.commands import Bot, Context, CommandNotFound
+from discord.ext.commands import Bot, Context, CommandNotFound, MissingRequiredArgument
 from utils import RED, GREEN, VALO_RED, BLUE, WIDTH
 
 load_dotenv()
@@ -33,6 +33,10 @@ async def on_command_error(ctx, error):
     if isinstance(error, CommandNotFound):
         await ctx.send("❌ Command not found.\nUse `!help` to see available commands.")
         return
+    elif isinstance(error, MissingRequiredArgument):
+        await ctx.send(
+            f"❌ Missing required argument: `{error.param.name}`.\nUse `!help {ctx.command}` for usage info."
+        )
     raise error
 
 
@@ -244,6 +248,11 @@ def get_nametag(id : int):
         return None
     else:
         return row[0]
+
+@set_name.error
+async def set_name_error(ctx: Context, error):
+    if isinstance(error, MissingRequiredArgument):
+        await ctx.send("❌ Please provide your nametag.\nUsage: `!setname Name#TAG`")
 
 if __name__ == "__main__":
     c.execute(
