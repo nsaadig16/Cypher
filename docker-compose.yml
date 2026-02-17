@@ -1,0 +1,12 @@
+services:
+  bot:
+    build: .
+    container_name: cypher-discord-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - db:/db
+
+volumes:
+  db:

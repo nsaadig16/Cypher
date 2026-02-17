@@ -14,3 +14,6 @@ wheels/
 
 # Response template
 response.json
+
+# Database
+*.db
