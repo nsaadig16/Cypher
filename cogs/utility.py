@@ -1,12 +1,8 @@
-import requests
 from discord.ext import commands
-from main import HEADERS
-
-REGION = "eu"
-
+from main import Cypher
 
 class UtilityCog(commands.Cog, name="Utility"):
-    def __init__(self, bot : commands.Bot):
+    def __init__(self, bot : Cypher):
         self.bot = bot
 
     @commands.command(name="ping")
@@ -21,7 +17,7 @@ class UtilityCog(commands.Cog, name="Utility"):
         """
         Checks if the server for the Europe region is up.
         """
-        response = requests.get(f"https://api.henrikdev.xyz/valorant/v1/status/{REGION}", headers=HEADERS).json()
+        response = await self.bot.fetch(f"https://api.henrikdev.xyz/valorant/v1/status/{self.bot.REGION}")
         is_up = response["status"]
 
         # Check status code

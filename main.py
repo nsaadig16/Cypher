@@ -1,5 +1,5 @@
+import aiohttp
 import discord
-import requests
 import os
 import sqlite3
 from dotenv import load_dotenv
@@ -8,28 +8,29 @@ from typing import override
 
 
 class Cypher(Bot):
-    def __init__(self):
+    def __init__(self, db_name, headers, region = "eu"):
         super().__init__(command_prefix="!", intents=intents)
-        self.conn = sqlite3.connect(DB_NAME)
-        self.c = conn.cursor()
-        self.bot = self
+        self.HEADERS = headers
+        self.REGION = region
+        self.conn = sqlite3.connect(db_name)
+        self.c = self.conn.cursor()
     
     @override
     async def setup_hook(self):
+        self.session = aiohttp.ClientSession(headers=self.HEADERS)
         cogs = [s.removesuffix(".py") for s in os.listdir("cogs") if s.endswith(".py")]
         for cog in cogs:
             await self.load_extension(f'cogs.{cog}')
 
     @override
     async def close(self):
+        await self.session.close()
         self.conn.close()
-
-def get_rank_from_nametag(name, tag):
-    response = requests.get(f"https://api.henrikdev.xyz/valorant/v3/mmr/eu/pc/{name}/{tag}", headers=HEADERS).json()
-    if response.get("errors",False):
-        message = response["errors"][0]["message"]
-        return "Error: " + message
-    return response["data"]["current"]["tier"]["name"].upper()
+        await super().close()
+    
+    async def fetch(self, url):
+        async with self.session.get(url) as resp:
+            return await resp.json()
 
 def check_request(response):
     if response.get("errors",False):
@@ -61,10 +62,9 @@ if __name__ == "__main__":
         "Content-Type": "application/json",
         "Accept" : "*/*"
     }
-    REGION = "eu"
     intents = discord.Intents.default()
     intents.message_content = True
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
-    bot = Cypher()
+    bot = Cypher(DB_NAME, HEADERS)
     bot.run(token=TOKEN)

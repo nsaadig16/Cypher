@@ -1,11 +1,12 @@
 import discord
-import requests
+from colorthief import ColorThief
 from discord.ext import commands
-from utils import get_name_tag, is_nametag, get_color_from_image, get_rank_icon, get_rank_int_value, rgb, BLUE, RED, VALO_RED, GREEN, WIDTH
-from main import get_nametag, check_request, get_rank_from_nametag, HEADERS
+from io import BytesIO
+from utils import get_name_tag, is_nametag, rgb, BLUE, RED, VALO_RED, GREEN, WIDTH
+from main import get_nametag, check_request, Cypher
 
 class PlayerCog(commands.Cog, name="Player"):
-    def __init__(self, bot):
+    def __init__(self, bot : Cypher):
         self.bot = bot
     
     @commands.command("player")
@@ -26,7 +27,7 @@ class PlayerCog(commands.Cog, name="Player"):
             await ctx.send("Invalid nametag format!")
             return
         name, tag = get_name_tag(nametag)
-        response = requests.get(f"https://api.henrikdev.xyz/valorant/v1/account/{name}/{tag}", headers=HEADERS).json()
+        response = await self.bot.fetch(f"https://api.henrikdev.xyz/valorant/v1/account/{name}/{tag}")
         if check_request(response):
             await ctx.send(check_request(response))
             return
@@ -34,12 +35,12 @@ class PlayerCog(commands.Cog, name="Player"):
         account_level = response["data"]["account_level"]
         card = response["data"]["card"]
         image = card["small"]
-        color = get_color_from_image(card["small"])
-        rank = get_rank_from_nametag(name,tag)
+        color = await self.get_color_from_image(card["small"])
+        rank = await self._get_rank_from_nametag(name,tag)
         if rank.startswith("Error"):
             await ctx.send(rank)
             return
-        rank_icon = get_rank_icon(get_rank_int_value(rank))
+        rank_icon = await self.get_rank_icon(rank)
 
         # Build embed
         embed = discord.Embed(
@@ -52,6 +53,7 @@ class PlayerCog(commands.Cog, name="Player"):
 
         # Send embed
         await ctx.send(embed=embed)
+    
     
     @commands.command(name="lastmach")
     async def get_last_match_leaderboard(self, ctx : commands.Context, nametag = None):
@@ -70,7 +72,7 @@ class PlayerCog(commands.Cog, name="Player"):
             await ctx.send("Invalid nametag format!")
             return
         name, tag = get_name_tag(nametag)
-        response = requests.get(url=f"https://api.henrikdev.xyz/valorant/v3/matches/eu/{name}/{tag}",headers=HEADERS).json()
+        response = await self.bot.fetch(url=f"https://api.henrikdev.xyz/valorant/v3/matches/eu/{name}/{tag}")
         if check_request(response):
             await ctx.send(check_request(response))
             return
@@ -119,5 +121,44 @@ class PlayerCog(commands.Cog, name="Player"):
         await ctx.send(embed=header)
         await ctx.send(embeds=embeds)
     
+    # ====================
+    # Utility functions
+    # ====================
+
+    async def _get_rank_from_nametag(self, name, tag):
+        response = await self.bot.fetch(f"https://api.henrikdev.xyz/valorant/v3/mmr/eu/pc/{name}/{tag}")
+        if response.get("errors",False):
+            message = response["errors"][0]["message"]
+            return "Error: " + message
+        return response["data"]["current"]["tier"]["name"].upper()
+
+    async def get_rank_icon(self, rank : str):
+        tiers = {
+            "IRON": 2,
+            "BRONZE": 5,
+            "SILVER": 8,
+            "GOLD": 11,
+            "PLATINUM": 14,
+            "DIAMOND": 17,
+            "ASCENDANT": 20,
+            "IMMORTAL": 23,
+        }
+        tier = rank.split()[0]
+        if tier == "UNRATED":
+            num = 0
+        elif tier == "RADIANT":
+            num = 27
+        else:
+            num = tiers[tier] + int(rank.split()[1])
+        response = await self.bot.fetch("https://valorant-api.com/v1/competitivetiers")
+        return response["data"][-1]["tiers"][num]["smallIcon"]
+
+    async def get_color_from_image(self, url : str):
+        response = await self.bot.fetch(url)
+        img = BytesIO(response.content)
+        color_thief = ColorThief(img)
+        r, g, b = color_thief.get_color(quality=1)
+        return rgb(r,g,b)
+
 async def setup(bot):
     await bot.add_cog(PlayerCog(bot))
