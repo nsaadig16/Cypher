@@ -1,8 +1,6 @@
-import discord
 import re
 import requests
 from colorthief import ColorThief
-from discord.ext import commands
 from io import BytesIO
 from typing import Tuple
 
@@ -50,40 +48,4 @@ def rgb(r, g, b):
     return (r << 16) + (g << 8) + b
 
 def is_nametag(nametag):
-    if re.match(r'[A-Za-z0-9]{3,16}\#[A-Za-z0-9]{3,5}', nametag):
-        return True
-    return False
-
-class MyHelp(commands.DefaultHelpCommand):
-    def get_category(self, command, *, default="General"):
-        return default
-    async def send_command_help(self, command):
-        doc = command.callback.__doc__ or ""
-        lines = [line.strip() for line in doc.splitlines()]
-
-        description = []
-        args = {}
-        in_args = False
-
-        for line in lines:
-            if line.lower() == "arguments:":
-                in_args = True
-                continue
-
-            if in_args:
-                if ":" in line:
-                    name, desc = line.split(":", 1)
-                    args[name.strip()] = desc.strip()
-            else:
-                if line:
-                    description.append(line)
-
-        embed = discord.Embed(
-            title=f"!{command.name}", description="\n".join(description)
-        )
-
-        for name, param in command.clean_params.items():
-            desc = args.get(name, "No description")
-            embed.add_field(name=name, value=desc, inline=False)
-
-        await self.get_destination().send(embed=embed)
+    return re.match(r'[A-Za-z0-9]{3,16}\#[A-Za-z0-9]{3,5}', nametag)
