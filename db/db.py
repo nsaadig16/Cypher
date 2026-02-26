@@ -1,7 +1,7 @@
-from aiosqlite import Connection, Cursor
+from aiosqlite import Connection
 
-async def create_table(conn : Connection, c : Cursor):
-    await c.execute(
+async def create_table(conn : Connection):
+    await conn.execute(
         """
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY,
@@ -11,8 +11,8 @@ async def create_table(conn : Connection, c : Cursor):
     )
     await conn.commit()
 
-async def insert_nametag(conn : Connection, c: Cursor, id : int, nametag : str):
-    await c.execute(
+async def insert_nametag(conn : Connection, id : int, nametag : str):
+    await conn.execute(
         "INSERT OR REPLACE INTO users (id, nametag) VALUES (?,?)", (id, nametag)
     )
     await conn.commit()

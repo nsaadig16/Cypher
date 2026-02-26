@@ -1,38 +1,36 @@
-import discord
+from discord import Embed
 from colorthief import ColorThief
 from discord.ext import commands
 from db.db import get_nametag_from_id
+from exceptions import NametagNotStoredException, APIException
 from io import BytesIO
-from utils import get_name_tag, is_nametag, rgb, BLUE, RED, VALO_RED, GREEN, WIDTH
-from main import check_request, Cypher
+from utils import get_name_tag, check_nametag, rgb, check_request, COLORS, WIDE_IMAGE
+from main import Cypher
 
 class PlayerCog(commands.Cog, name="Player"):
     def __init__(self, bot : Cypher):
         self.bot = bot
     
     @commands.command("player")
-    async def get_player(self, ctx : commands.Context, nametag = None):
+    async def get_player(self, ctx : commands.Context, nametag : str | None = None):
         """
         Displays information on a player
         """
-        # Get data
-        if nametag is None:
-            real_nametag = await get_nametag_from_id(self.bot.conn , ctx.author.id)
-            if real_nametag is None:
-                await ctx.send("You don't have a nametag linked to your account." \
-                " Use `!player nametag` or `!setname nametag`")
-                return
-            else:
-                nametag = real_nametag
-        elif not is_nametag(nametag):
-            await ctx.send("Invalid nametag format!")
+        try:
+            name, tag = await self.process_nametag(ctx, nametag)
+        except Exception as e:
+            await ctx.send(f"Error: {e}")
             return
-        name, tag = get_name_tag(nametag) # pyright: ignore
-        response = await self.bot.fetch(f"https://api.henrikdev.xyz/valorant/v1/account/{name}/{tag}")
-        if check_request(response):
-            await ctx.send(check_request(response))
+        
+        try:
+            response = await self.bot.fetch(
+                    f"https://api.henrikdev.xyz/valorant/v1/account/{name}/{tag}"
+            )
+            check_request(response)
+        except APIException as e:
+            await ctx.send(f"Error: {e}")
             return
-
+    
         account_level = response["data"]["account_level"]
         card = response["data"]["card"]
         image = card["small"]
@@ -44,7 +42,7 @@ class PlayerCog(commands.Cog, name="Player"):
         rank_icon = await self.get_rank_icon(rank)
 
         # Build embed
-        embed = discord.Embed(
+        embed = Embed(
             description=f"## {name}#{tag}\n ### Level {account_level}",
             color=color
         )
@@ -56,28 +54,23 @@ class PlayerCog(commands.Cog, name="Player"):
         await ctx.send(embed=embed)
     
     
-    @commands.command(name="lastmach")
-    async def get_last_match_leaderboard(self, ctx : commands.Context, nametag = None):
+    @commands.command(name="lastmatch")
+    async def get_last_match_leaderboard(self, ctx : commands.Context, nametag : str | None = None):
         """
         Displays a player's last match leaderboard
         """
-        if nametag is None:
-            real_nametag = await get_nametag_from_id(self.bot.conn, ctx.author.id)
-            if real_nametag is None:
-                await ctx.send("You don't have a nametag linked to your account." \
-                " Use `!player nametag` or `!setname nametag`")
-                return
-            else:
-                nametag = real_nametag
-        elif not is_nametag(nametag):
-            await ctx.send("Invalid nametag format!")
+        try:
+            name, tag = await self.process_nametag(ctx, nametag)
+        except Exception as e:
+            await ctx.send(f"Error: {e}")
             return
-        name, tag = get_name_tag(nametag) # pyright: ignore
-        response = await self.bot.fetch(url=f"https://api.henrikdev.xyz/valorant/v3/matches/eu/{name}/{tag}")
-        if check_request(response):
-            await ctx.send(check_request(response))
-            return
-
+        
+        try:
+            response = await self.bot.fetch(url=f"https://api.henrikdev.xyz/valorant/v3/matches/eu/{name}/{tag}")
+            check_request(response)
+        except APIException as e:
+            await ctx.send(f"Error: {e}")
+            return        
         last_match = response["data"][0]
         rounds = last_match["metadata"]["rounds_played"]
         players = last_match["players"]["all_players"]
@@ -93,15 +86,15 @@ class PlayerCog(commands.Cog, name="Player"):
             score = player["stats"]["score"] // rounds
             k, d, a = player["stats"]["kills"], player["stats"]["deaths"], player["stats"]["assists"]
             player_team = player["team"]
-            color = rgb(*VALO_RED) if player_team == "Red" else rgb(*BLUE) 
+            color = rgb(*COLORS["VALO_RED"]) if player_team == "Red" else rgb(*COLORS["VALO_BLUE"]) 
             if player_name.upper() == f"{name.upper()}#{tag.upper()}":
                 winner = last_match["teams"][player_team.lower()]["has_won"]
-                header = discord.Embed(
-                    color=rgb(*GREEN) if winner else rgb(*RED),
+                header = Embed(
+                    color=rgb(*COLORS["GREEN"]) if winner else rgb(*COLORS["RED"]),
                     description=f"## Map: {map}\n ## Mode: {mode}\n ## Date: {when}"
                 )                
 
-            embed =discord.Embed(
+            embed = Embed(
                     color=color,
                     description=f"### {player_name}",
                 )
@@ -116,7 +109,7 @@ class PlayerCog(commands.Cog, name="Player"):
             embed.set_thumbnail(
                 url=player["assets"]["agent"]["small"]
             )
-            embed.set_image(url=WIDTH)
+            embed.set_image(url=WIDE_IMAGE)
             embeds.append(embed)
 
         await ctx.send(embed=header)
@@ -126,7 +119,7 @@ class PlayerCog(commands.Cog, name="Player"):
     # Utility functions
     # ====================
 
-    async def _get_rank_from_nametag(self, name, tag):
+    async def _get_rank_from_nametag(self, name : str, tag : str):
         response = await self.bot.fetch(f"https://api.henrikdev.xyz/valorant/v3/mmr/eu/pc/{name}/{tag}")
         if response.get("errors",False):
             message = response["errors"][0]["message"]
@@ -155,11 +148,26 @@ class PlayerCog(commands.Cog, name="Player"):
         return response["data"][-1]["tiers"][num]["smallIcon"]
 
     async def get_color_from_image(self, url : str):
-        response = await self.bot.fetch(url)
-        img = BytesIO(response.content)
+        response = await self.bot.fetch_bytes(url)
+        img = BytesIO(response)
         color_thief = ColorThief(img)
         r, g, b = color_thief.get_color(quality=1)
         return rgb(r,g,b)
+
+    async def process_nametag(self, ctx, nametag):
+        if nametag is None:
+            db_nametag = await get_nametag_from_id(self.bot.conn, ctx.author.id)
+            if db_nametag is None:                
+                raise NametagNotStoredException("You don't have a nametag linked to your account." \
+                    " Use `!player nametag` or `!setname nametag`"
+                )
+            else:
+                real_nametag = db_nametag
+        else:
+            real_nametag = nametag
+        check_nametag(real_nametag)
+        name, tag = get_name_tag(real_nametag)
+        return name, tag
 
 async def setup(bot):
     await bot.add_cog(PlayerCog(bot))

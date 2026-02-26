@@ -1,24 +1,26 @@
 from discord.ext import commands
 from discord.ext.commands.errors import MissingRequiredArgument
-from utils import is_nametag
+from utils import check_nametag, NametagFormatException
 from db.db import insert_nametag, get_nametag_from_id, remove_nametag
+from main import Cypher
 
 class ProfileCog(commands.Cog, name="Profile"):
-    def __init__(self, bot):
+    def __init__(self, bot : Cypher):
         self.bot = bot
-        self.conn, self.c = bot.conn, bot.c
+        self.conn = bot.conn
 
     @commands.command(name = "setname")
     async def set_name(self, ctx : commands.Context, nametag):
         """
         Link a nametag to your user
         """
-        if not is_nametag(nametag):
-            await ctx.send("Invalid nametag format!")
+        try:
+            check_nametag(nametag)
+        except NametagFormatException as e:
+            await ctx.send(f"Error: {e}")
             return
         id = ctx.author.id
-        await insert_nametag(self.conn, self.c, id, nametag)
-        self.bot.conn.commit()
+        await insert_nametag(self.conn, id, nametag)
         await ctx.send(f"Successfuly linked the nametag {nametag} to your user!")
 
     
@@ -32,7 +34,7 @@ class ProfileCog(commands.Cog, name="Profile"):
         if row is None:
             await ctx.send("You don't have a nametag stored. Do it using `!setname`")
         else:
-            nametag = row[0] #pyright: ignore
+            nametag = row #pyright: ignore
             await ctx.send(f"Your username is `{nametag}`")
     
     @commands.command(name= "removename")
@@ -41,7 +43,7 @@ class ProfileCog(commands.Cog, name="Profile"):
         Delete the nametag linked to your user
         """
         id = ctx.author.id
-        delete_outcome = remove_nametag(self.conn, id)
+        delete_outcome = await remove_nametag(self.conn, id)
         if not delete_outcome:
             await ctx.send("You don't have a nametag stored. Do it using `!setname`")
         else:

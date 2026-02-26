@@ -1,8 +1,9 @@
 from discord.ext import commands
 from discord.ext.commands.errors import CommandNotFound, MissingRequiredArgument
+from main import Cypher
 
 class EventCog(commands.Cog, name="Events"):
-    def __init__(self, bot):
+    def __init__(self, bot : Cypher):
         self.bot = bot
     
     @commands.Cog.listener()
