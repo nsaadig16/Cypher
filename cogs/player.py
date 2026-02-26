@@ -1,9 +1,10 @@
 import discord
 from colorthief import ColorThief
 from discord.ext import commands
+from db.db import get_nametag_from_id
 from io import BytesIO
 from utils import get_name_tag, is_nametag, rgb, BLUE, RED, VALO_RED, GREEN, WIDTH
-from main import get_nametag, check_request, Cypher
+from main import check_request, Cypher
 
 class PlayerCog(commands.Cog, name="Player"):
     def __init__(self, bot : Cypher):
@@ -16,7 +17,7 @@ class PlayerCog(commands.Cog, name="Player"):
         """
         # Get data
         if nametag is None:
-            real_nametag = get_nametag(ctx.author.id)
+            real_nametag = await get_nametag_from_id(self.bot.conn , ctx.author.id)
             if real_nametag is None:
                 await ctx.send("You don't have a nametag linked to your account." \
                 " Use `!player nametag` or `!setname nametag`")
@@ -26,7 +27,7 @@ class PlayerCog(commands.Cog, name="Player"):
         elif not is_nametag(nametag):
             await ctx.send("Invalid nametag format!")
             return
-        name, tag = get_name_tag(nametag)
+        name, tag = get_name_tag(nametag) # pyright: ignore
         response = await self.bot.fetch(f"https://api.henrikdev.xyz/valorant/v1/account/{name}/{tag}")
         if check_request(response):
             await ctx.send(check_request(response))
@@ -61,7 +62,7 @@ class PlayerCog(commands.Cog, name="Player"):
         Displays a player's last match leaderboard
         """
         if nametag is None:
-            real_nametag = get_nametag(ctx.author.id)
+            real_nametag = await get_nametag_from_id(self.bot.conn, ctx.author.id)
             if real_nametag is None:
                 await ctx.send("You don't have a nametag linked to your account." \
                 " Use `!player nametag` or `!setname nametag`")
@@ -71,7 +72,7 @@ class PlayerCog(commands.Cog, name="Player"):
         elif not is_nametag(nametag):
             await ctx.send("Invalid nametag format!")
             return
-        name, tag = get_name_tag(nametag)
+        name, tag = get_name_tag(nametag) # pyright: ignore
         response = await self.bot.fetch(url=f"https://api.henrikdev.xyz/valorant/v3/matches/eu/{name}/{tag}")
         if check_request(response):
             await ctx.send(check_request(response))

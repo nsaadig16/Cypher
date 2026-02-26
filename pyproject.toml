@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "aiohttp>=3.13.3",
+    "aiosqlite>=0.22.1",
     "colorthief>=0.2.1",
     "discord-py>=2.6.4",
     "dotenv>=0.9.9",

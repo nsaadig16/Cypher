@@ -17,7 +17,7 @@ class ProfileCog(commands.Cog, name="Profile"):
             await ctx.send("Invalid nametag format!")
             return
         id = ctx.author.id
-        insert_nametag(self.conn, self.c, id, nametag)
+        await insert_nametag(self.conn, self.c, id, nametag)
         self.bot.conn.commit()
         await ctx.send(f"Successfuly linked the nametag {nametag} to your user!")
 
@@ -28,11 +28,11 @@ class ProfileCog(commands.Cog, name="Profile"):
         Show the nametag linked to your user
         """
         id = ctx.author.id
-        row = get_nametag_from_id(self.conn, self.c, id)
+        row = await get_nametag_from_id(self.conn, id)
         if row is None:
             await ctx.send("You don't have a nametag stored. Do it using `!setname`")
         else:
-            nametag = row[0]
+            nametag = row[0] #pyright: ignore
             await ctx.send(f"Your username is `{nametag}`")
     
     @commands.command(name= "removename")
@@ -41,7 +41,7 @@ class ProfileCog(commands.Cog, name="Profile"):
         Delete the nametag linked to your user
         """
         id = ctx.author.id
-        delete_outcome = remove_nametag(self.conn, self.c, id)
+        delete_outcome = remove_nametag(self.conn, id)
         if not delete_outcome:
             await ctx.send("You don't have a nametag stored. Do it using `!setname`")
         else:
