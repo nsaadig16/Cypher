@@ -1,6 +1,6 @@
 import re
 from typing import Tuple, Union
-from exceptions import NametagFormatException, APIException
+from cypher.exceptions import NametagFormatException, APIException
 
 COLORS ={
     "RED" : (255, 0, 0),

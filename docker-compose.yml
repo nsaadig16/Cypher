@@ -6,7 +6,7 @@ services:
     env_file:
       - .env
     volumes:
-      - db:/db
+      - db:/app/src/cypher/db
 
 volumes:
   db:

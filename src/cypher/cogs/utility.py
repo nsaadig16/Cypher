@@ -1,5 +1,5 @@
 from discord.ext import commands
-from main import Cypher
+from cypher.main import Cypher
 
 class UtilityCog(commands.Cog, name="Utility"):
     def __init__(self, bot : Cypher):

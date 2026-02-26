@@ -1,8 +1,11 @@
+[build-system]
+requires = ["uv_build"]
+build-backend = "uv_build"
+
 [project]
 name = "cypher"
 version = "1.0.0"
 description = "A valorant Discord bot"
-readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "aiohttp>=3.13.3",

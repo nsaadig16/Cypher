@@ -1,11 +1,11 @@
 from discord import Embed
 from colorthief import ColorThief
 from discord.ext import commands
-from db.db import get_nametag_from_id
-from exceptions import NametagNotStoredException, APIException
+from cypher.db.db import get_nametag_from_id
+from cypher.exceptions import NametagNotStoredException, APIException
 from io import BytesIO
-from utils import get_name_tag, check_nametag, rgb, check_request, COLORS, WIDE_IMAGE
-from main import Cypher
+from cypher.utils import get_name_tag, check_nametag, rgb, check_request, COLORS, WIDE_IMAGE
+from cypher.main import Cypher
 
 class PlayerCog(commands.Cog, name="Player"):
     def __init__(self, bot : Cypher):

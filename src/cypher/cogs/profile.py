@@ -1,8 +1,8 @@
 from discord.ext import commands
 from discord.ext.commands.errors import MissingRequiredArgument
-from utils import check_nametag, NametagFormatException
-from db.db import insert_nametag, get_nametag_from_id, remove_nametag
-from main import Cypher
+from cypher.utils import check_nametag, NametagFormatException
+from cypher.db.db import insert_nametag, get_nametag_from_id, remove_nametag
+from cypher.main import Cypher
 
 class ProfileCog(commands.Cog, name="Profile"):
     def __init__(self, bot : Cypher):

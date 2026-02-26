@@ -1,13 +1,13 @@
 import aiohttp
 import aiosqlite
-import os
-from config import TOKEN, HEADERS, DB_NAME
+from cypher.config import TOKEN, HEADERS, DB_PATH
 from discord import Intents
 from discord.ext.commands import Bot
+from pathlib import Path
 from typing import override
 
 class Cypher(Bot):
-    def __init__(self, db_name, headers, region = "eu"):
+    def __init__(self, db_name, headers, intents, region = "eu"):
         super().__init__(command_prefix="!", intents=intents)
         self.HEADERS = headers
         self.REGION = region
@@ -17,9 +17,10 @@ class Cypher(Bot):
     async def setup_hook(self):
         self.session = aiohttp.ClientSession(headers=self.HEADERS)
         self.conn = await aiosqlite.connect(self.DB_NAME)
-        cogs = [s.removesuffix(".py") for s in os.listdir("cogs") if s.endswith(".py")]
+        cogs_path = Path(__file__).parent / "cogs"
+        cogs = [f.stem for f in cogs_path.iterdir() if f.suffix == ".py" and f.name != "__init__.py"]
         for cog in cogs:
-            await self.load_extension(f'cogs.{cog}')
+            await self.load_extension(f'cypher.cogs.{cog}')
 
     @override
     async def close(self):
@@ -35,12 +36,15 @@ class Cypher(Bot):
         async with self.session.get(url) as resp:
             return await resp.read()
 
-if __name__ == "__main__":
-    if not all([TOKEN, HEADERS, DB_NAME]):
+def main():
+    if not all([TOKEN, HEADERS, DB_PATH]):
         print("Environment variables not set.\n" \
         "Make sure you have your bot's TOKEN and your HenrikDev API key!")
         exit()
     intents = Intents.default()
     intents.message_content = True
-    bot = Cypher(DB_NAME, HEADERS)
+    bot = Cypher(DB_PATH, HEADERS, intents)
     bot.run(token=TOKEN)
+
+if __name__=="__main__":
+    main()
