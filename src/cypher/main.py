@@ -1,6 +1,7 @@
 import aiohttp
 import aiosqlite
 from cypher.config import TOKEN, HEADERS, DB_PATH
+from cypher.db.db import create_table
 from discord import Intents
 from discord.ext.commands import Bot
 from pathlib import Path
@@ -17,6 +18,7 @@ class Cypher(Bot):
     async def setup_hook(self):
         self.session = aiohttp.ClientSession(headers=self.HEADERS)
         self.conn = await aiosqlite.connect(self.DB_NAME)
+        await create_table(self.conn)
         cogs_path = Path(__file__).parent / "cogs"
         cogs = [f.stem for f in cogs_path.iterdir() if f.suffix == ".py" and f.name != "__init__.py"]
         for cog in cogs:
