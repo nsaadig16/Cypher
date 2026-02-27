@@ -8,6 +8,7 @@ ADD .python-version .python-version
 
 RUN uv sync --no-install-project
 
+COPY src/ /app/src/
 COPY . .
 RUN uv sync
 
